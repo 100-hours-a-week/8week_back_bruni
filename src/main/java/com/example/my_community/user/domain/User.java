@@ -1,36 +1,32 @@
 package com.example.my_community.user.domain;
 
-import com.example.my_community.comment.domain.Comment;
-import com.example.my_community.post.domain.Post;
 import jakarta.persistence.*;
 import lombok.Getter;
-
-import java.util.ArrayList;
-import java.util.List;
+import lombok.Setter;
 
 @Entity
-@Getter
+@Getter @Setter
 public class User {
-    @Id @GeneratedValue
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
     private Long id;
 
-    private String username;
+    private String email;
     private String password; // 예: "{noop}pass1" (추후 BCrypt로 교체)
 
-    @OneToMany(mappedBy = "user")
-    private List<Post> posts = new ArrayList<>();
+    @Enumerated(EnumType.STRING)
+    private Role role;
 
-    @OneToMany(mappedBy = "user")
-    private List<Comment> comments = new ArrayList<>();
 
     public User() {}
 
-    public User(Long id, String username, String password, List<Post> posts, List<Comment> comments) {
-        this.id = id;
-        this.username = username;
+    public User(String email, String password, Role role) {
+        this.email = email;
         this.password = password;
-        this.posts = posts;
-        this.comments = comments;
+        this.role = role;
+    }
+
+    public void changeNickname(String nickname) {
+        this.email = nickname;
     }
 }

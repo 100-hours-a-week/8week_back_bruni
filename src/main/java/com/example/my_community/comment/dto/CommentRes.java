@@ -1,5 +1,8 @@
 package com.example.my_community.comment.dto;
 
+import lombok.Data;
+
+@Data
 public class CommentRes {
     private final Long id;
     private final Long postId;
@@ -15,23 +18,4 @@ public class CommentRes {
         this.createdAt = createdAt;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public Long getPostId() {
-        return postId;
-    }
-
-    public Long getAuthorId() {
-        return authorId;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public String getCreatedAt() {
-        return createdAt;
-    }
 }

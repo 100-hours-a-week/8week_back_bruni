@@ -1,8 +1,12 @@
 package com.example.my_community.post.dto;
 
+import lombok.Data;
+import lombok.Getter;
+
 /**
  * 게시물관련 응답 dto 클래스
  */
+@Data
 public class PostRes {
     private final Long id;
     private final String title;
@@ -16,27 +20,5 @@ public class PostRes {
         this.content = content;
         this.authorId = authorId;
         this.createdAt = createdAt;
-    }
-
-    // getters
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public Long getAuthorId() {
-        return authorId;
-    }
-
-    public String getCreatedAt() {
-        return createdAt;
     }
 }

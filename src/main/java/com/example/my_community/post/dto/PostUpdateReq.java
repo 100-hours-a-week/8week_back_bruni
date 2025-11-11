@@ -2,10 +2,14 @@ package com.example.my_community.post.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 게시물 수정 요청에 대한 dto 클래스
  */
+@Data
 public class PostUpdateReq {
 
     @NotBlank
@@ -23,19 +27,4 @@ public class PostUpdateReq {
         this.content = content;
     }
 
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
-    }
 }

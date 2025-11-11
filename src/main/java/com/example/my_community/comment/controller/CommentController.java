@@ -1,18 +1,14 @@
 package com.example.my_community.comment.controller;
 
 import com.example.my_community.auth.Auth;
-import com.example.my_community.auth.SessionUser;
 import com.example.my_community.comment.dto.CommentCreateReq;
 import com.example.my_community.comment.dto.CommentRes;
 import com.example.my_community.comment.service.CommentService;
-import com.example.my_community.common.exception.UnauthorizedException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +31,7 @@ public class CommentController {
     /** 생성: POST /api/posts/{postId}/comments */
     @Operation(summary = "댓글 생성")
     @ApiResponse(responseCode = "200", description = "생성 성공(본문에 생성 결과 반환)")
+
     @PostMapping(value = "/api/posts/{postId}/comments", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<CommentRes> create(@PathVariable Long postId,
                                              @Valid @RequestBody CommentCreateReq req, HttpServletRequest request) {
@@ -57,6 +54,7 @@ public class CommentController {
     /** 목록: GET /api/posts/{postId}/comments */
     @Operation(summary = "댓글 목록 조회(페이지)")
     @ApiResponse(responseCode = "200", description = "성공")
+
     @GetMapping("/api/posts/{postId}/comments")
     public ResponseEntity<PageResponse<CommentRes>> list(@PathVariable Long postId,
                                                          @RequestParam(defaultValue = "0") int page,
@@ -64,7 +62,7 @@ public class CommentController {
                                                          @RequestParam(defaultValue = "createdAt") String sort,
                                                          @RequestParam(defaultValue = "desc") String dir) {
         List<CommentRes> content = service.listByPost(postId, page, size, sort, dir);
-        long total = service.countByPost(postId);
+        long total = service.count();
         long totalPages = (long) Math.ceil((double) total / size);
         return ResponseEntity.ok(new PageResponse<>(content, page, size, total, totalPages));
     }
@@ -72,6 +70,7 @@ public class CommentController {
     /** 삭제: DELETE /api/comments/{id} */
     @Operation(summary = "댓글 삭제(작성자만)")
     @ApiResponse(responseCode = "204", description = "삭제 성공")
+
     @DeleteMapping("/api/comments/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id, HttpServletRequest request) {
         Long uid = auth.requireUserId(request);

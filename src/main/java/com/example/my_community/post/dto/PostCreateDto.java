@@ -2,12 +2,13 @@ package com.example.my_community.post.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.Data;
 import lombok.Getter;
 
 /**
  * 게시물 등록 요청에 대한 dto 클래스
  */
-@Getter
+@Data
 public class PostCreateDto {
     @NotBlank(message ="제목은 공백이면 안 됩니다." )
     @Size(min = 1, max = 100)

@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -54,6 +55,7 @@ public class PostController {
      */
     @Operation(summary = "게시글 생성")
     @ApiResponse(responseCode = "201", description = "생성됨")
+
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<PostRes> create(@Valid @RequestBody PostCreateDto postCreateDto, HttpServletRequest request) {
         Long id = auth.requireUserId(request); // 세션 인증을 통해 id 받기
@@ -64,6 +66,7 @@ public class PostController {
     // 단건 조회
     @Operation(summary = "게시글 단건 조회")
     @ApiResponse(responseCode = "200", description = "성공")
+
     @GetMapping("/{id}")
     public ResponseEntity<PostRes> get(@PathVariable Long id) {
         return ResponseEntity.ok(service.get(id));
@@ -91,6 +94,7 @@ public class PostController {
     // 목록 조회(페이지)
     @Operation(summary = "게시글 목록 조회(페이지)")
     @ApiResponse(responseCode = "200", description = "성공")
+
     @GetMapping
     public ResponseEntity<PageResponse<PostRes>> list(
             @RequestParam(defaultValue = "0") int page,
@@ -107,7 +111,8 @@ public class PostController {
     // 수정 (작성자만)
     @Operation(summary = "게시글 수정")
     @ApiResponse(responseCode = "200", description = "수정 성공")
-    @PutMapping("/{id}")
+
+    @PatchMapping("/{id}")
     public ResponseEntity<PostRes> update(@PathVariable Long id,
                                           @Valid @RequestBody PostUpdateReq req,
                                           HttpServletRequest request) {
@@ -118,6 +123,7 @@ public class PostController {
     // 삭제 (작성자만)
     @Operation(summary = "게시글 삭제")
     @ApiResponse(responseCode = "204", description = "삭제 성공")
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id, HttpServletRequest request) {
         Long uid = auth.requireUserId(request);
