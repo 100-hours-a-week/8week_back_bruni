@@ -4,45 +4,43 @@ import com.example.my_community.post.domain.Post;
 import com.example.my_community.user.domain.User;
 import jakarta.persistence.*;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
+
 
 import java.time.OffsetDateTime;
 
 @Entity
-@Getter @Setter
+@Getter
 public class Comment {
     @Id @GeneratedValue
     @Column(name = "comment_id")
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "post_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id", nullable = false)
     private Post post;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(nullable = false, length = 1000)
     private String content;
 
-    @Column(name = "created_at")
+
+    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
 
+    public Comment() {}
 
-
-
-
-
-    public Comment() {
-    }
-
-    public Comment(Long id, Post post, User user, String content, OffsetDateTime createdAt) {
-        this.id = id;
+    public Comment(Post post, User user, String content) {
         this.post = post;
         this.user = user;
         this.content = content;
-        this.createdAt = createdAt;
+        this.createdAt = OffsetDateTime.now();
+    }
+
+    public void changeContent(String content) {
+        this.content = content;
     }
 }

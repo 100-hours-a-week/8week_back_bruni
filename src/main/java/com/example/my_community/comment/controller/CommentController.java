@@ -3,6 +3,7 @@ package com.example.my_community.comment.controller;
 import com.example.my_community.auth.Auth;
 import com.example.my_community.comment.dto.CommentCreateReq;
 import com.example.my_community.comment.dto.CommentRes;
+import com.example.my_community.comment.dto.CommentUpdateReq;
 import com.example.my_community.comment.service.CommentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -40,37 +41,22 @@ public class CommentController {
         return ResponseEntity.ok(service.create(postId, req, uid));
     }
 
-    /** 페이지 래퍼 */
-    @Schema(name = "CommentPageResponse", description = "댓글 페이지 응답")
-    public static class PageResponse<T> {
-        public final List<T> content;
-        public final int page, size;
-        public final long totalElements, totalPages;
-        public PageResponse(List<T> c, int p, int s, long te, long tp) {
-            this.content = c; this.page = p; this.size = s; this.totalElements = te; this.totalPages = tp;
-        }
-    }
 
-    /** 목록: GET /api/posts/{postId}/comments */
-    @Operation(summary = "댓글 목록 조회(페이지)")
+
+    @Operation(summary = "댓글 목록 조회")
     @ApiResponse(responseCode = "200", description = "성공")
-
     @GetMapping("/api/posts/{postId}/comments")
-    public ResponseEntity<PageResponse<CommentRes>> list(@PathVariable Long postId,
-                                                         @RequestParam(defaultValue = "0") int page,
-                                                         @RequestParam(defaultValue = "10") int size,
-                                                         @RequestParam(defaultValue = "createdAt") String sort,
-                                                         @RequestParam(defaultValue = "desc") String dir) {
-        List<CommentRes> content = service.listByPost(postId, page, size, sort, dir);
-        long total = service.count();
-        long totalPages = (long) Math.ceil((double) total / size);
-        return ResponseEntity.ok(new PageResponse<>(content, page, size, total, totalPages));
+    public ResponseEntity<List<CommentRes>> list(@PathVariable Long postId,
+                                                 HttpServletRequest request) {
+        Long uid = auth.getOptionalUserId(request);
+        List<CommentRes> content = service.listByPost(postId, uid);
+        return ResponseEntity.ok(content);
     }
+
 
     /** 삭제: DELETE /api/comments/{id} */
     @Operation(summary = "댓글 삭제(작성자만)")
     @ApiResponse(responseCode = "204", description = "삭제 성공")
-
     @DeleteMapping("/api/comments/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id, HttpServletRequest request) {
         Long uid = auth.requireUserId(request);
@@ -78,5 +64,15 @@ public class CommentController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "댓글 수정(작성자만)")
+    @ApiResponse(responseCode = "200", description = "수정 성공")
+    @PatchMapping(value = "/api/comments/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<CommentRes> update(@PathVariable Long id,
+                                             @Valid @RequestBody CommentUpdateReq req,
+                                             HttpServletRequest request) {
+        Long uid = auth.requireUserId(request);   // 로그인 여부 + 유저 ID 얻기
+        CommentRes res = service.update(id, req, uid);
+        return ResponseEntity.ok(res);
+    }
 
 }

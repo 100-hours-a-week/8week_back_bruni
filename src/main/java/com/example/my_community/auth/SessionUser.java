@@ -28,4 +28,10 @@ public class SessionUser implements Auth {
                 .orElseThrow(() -> new UnauthorizedException("로그인이 필요합니다.")); // 반환된 Optional 값이 EMPTY
     }
 
+    @Override
+    public Long getOptionalUserId(HttpServletRequest request) {
+        return currentUserId(request) // 현재 사용자 id 반환
+                .orElseThrow(() -> new UnauthorizedException("로그인이 필요합니다."));
+    }
+
 }

@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 게시물 수정 요청에 대한 dto 클래스
@@ -19,6 +20,8 @@ public class PostUpdateReq {
     @NotBlank
     @Size(min = 1, max = 5000)
     private String content;
+
+    private MultipartFile image;
 
     public PostUpdateReq() { }
 

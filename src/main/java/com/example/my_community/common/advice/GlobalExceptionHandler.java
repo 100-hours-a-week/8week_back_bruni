@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.time.OffsetDateTime;
+
 @RestControllerAdvice  // 전역 컨트롤러 예외 처리기
 public class GlobalExceptionHandler {
 
@@ -25,6 +27,20 @@ public class GlobalExceptionHandler {
                 new ErrorResponse(400, "COMMON-VALIDATION", msg, field, req.getRequestURI())
         );
     }
+
+    @ExceptionHandler({
+            org.springframework.web.bind.MissingServletRequestParameterException.class,
+            org.springframework.http.converter.HttpMessageNotReadableException.class,
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class
+    })
+    public ResponseEntity<ErrorResponse> handleBadRequest(Exception ex, HttpServletRequest req) {
+        var body = new ErrorResponse(
+                 400, "COMMON-BAD-REQUEST",
+                "요청 형식이 올바르지 않습니다.", null, req.getRequestURI()
+        );
+        return ResponseEntity.badRequest().body(body);
+    }
+
 
     // 401: 미인증
     @io.swagger.v3.oas.annotations.responses.ApiResponse(

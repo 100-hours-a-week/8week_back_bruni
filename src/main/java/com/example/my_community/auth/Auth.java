@@ -10,4 +10,6 @@ public interface Auth {
     Optional<Long> currentUserId(HttpServletRequest request);
 
     Long requireUserId(HttpServletRequest request);
+
+    Long getOptionalUserId(HttpServletRequest request);
 }

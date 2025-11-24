@@ -15,8 +15,10 @@ public class AppConfig {
 
     // 서비스 계층을 스프링 빈으로 등록
     @Bean
-    public PostService postService(PostRepository postRepository, UserRepository userRepository) {
-        return new PostService(postRepository, userRepository);
+    public PostService postService(PostRepository postRepository,
+                                   UserRepository userRepository,
+                                   CommentRepository commentRepository) {
+        return new PostService(postRepository, userRepository, commentRepository);
     }
 
 

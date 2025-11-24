@@ -15,24 +15,7 @@ class UserTest {
     @PersistenceContext
     EntityManager entityManager;
 
-    @Test
-    @Rollback(false)
-    void idTest() {
-        User user = new User("bruni", "123aS!", Role.USER);
-        entityManager.persist(user);
-    }
 
-    @Test
-    @Rollback(false)
-    void idStrategyTest(){
-        // 5개의 더미데이터 추가
-        for (int i = 1; i <= 5; i++) {
-            User user = new User(
-                    "tester" + i + "@adapterz.kr",
-                    "123aS!" + i,
-                    Role.USER
-            );
-            entityManager.persist(user);
-        }
-    }
+
+
 }

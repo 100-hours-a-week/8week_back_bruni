@@ -1,7 +1,9 @@
 package com.example.my_community.post.controller;
 
-import com.example.my_community.auth.Auth;
-import com.example.my_community.post.dto.PostCreateDto;
+import com.example.my_community.auth.AuthSessionKeys;
+import com.example.my_community.common.exception.UnauthorizedException;
+import com.example.my_community.post.domain.Post;
+import com.example.my_community.post.dto.PostCreateRequest;
 import com.example.my_community.post.dto.PostRes;
 import com.example.my_community.post.dto.PostUpdateReq;
 import com.example.my_community.post.service.PostService;
@@ -9,9 +11,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,47 +33,60 @@ import java.util.List;
 @Tag(name = "Posts", description = "게시글 CRUD API")
 @RestController
 @RequestMapping(value = "/api/posts", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequiredArgsConstructor
+
 public class PostController {
     private final PostService service; // 서비스 계층 의존
-    private final Auth auth;           // 인증을 위한 의존
-
-    public PostController(PostService service, Auth auth) {
-        this.service = service;
-        this.auth = auth;
-    }
 
     /**
      * [create 메서드] : 사용자로부터 받은 요청(제목, 본문) -> 게시물 서비스 계층 -> Http 응답(바디에 정보 담아서) 생성
-     * @param postCreateDto : PostCreateDTO(=게시글 생성 DTO 클래스) 객체
+     * @param req : PostCreateDTO(=게시글 생성 DTO 클래스) 객체
      *  - @Valid : 유효성 검증, @RequestBody : HTTP 요청 바디를 자바 객체로 매핑(주로 Json 형태의 데이터)
-     *
-     * @param request : HttpServletRequest
-     *                - 웹 클라이언트(예: 웹 브라우저)가 서버로 보낸 HTTP 요청에 대한 정보를 담고 있는 객체
-     *                - 서버 애플리케이션에서 이 요청 정보(헤더, 쿠키)를 파싱하여 편리하게 사용할 수 있게 해줌
      *
      * @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
      *  - @PostMapping : HTTP POST 메서드로 들어오는 요청과 매핑을 의미
      *  - comsumes : 받아들일 수 있는 요청 본문(바디)의 미디어 타입 지정
      *  - MediaType.APPLICATION_JSON_VALUE : 바디의 Content-Type이 "application/json"이어야 함을 명시
-     * @return
+     *
      */
     @Operation(summary = "게시글 생성")
     @ApiResponse(responseCode = "201", description = "생성됨")
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<PostRes> create(
+            @ModelAttribute PostCreateRequest req,
+            HttpSession session
+    ) {
+        Long loginUserId = (Long) session.getAttribute(AuthSessionKeys.LOGIN_USER_ID);
+        if (loginUserId == null) {
+            throw new UnauthorizedException("게시글 작성을 위해서는 로그인이 필요합니다.");
+        }
 
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PostRes> create(@Valid @RequestBody PostCreateDto postCreateDto, HttpServletRequest request) {
-        Long id = auth.requireUserId(request); // 세션 인증을 통해 id 받기
-        PostRes res = service.create(postCreateDto, id);
+        PostRes res = service.create(loginUserId, req);
         return ResponseEntity.created(URI.create("/api/posts/" + res.getId())).body(res);
     }
 
-    // 단건 조회
     @Operation(summary = "게시글 단건 조회")
     @ApiResponse(responseCode = "200", description = "성공")
-
     @GetMapping("/{id}")
-    public ResponseEntity<PostRes> get(@PathVariable Long id) {
-        return ResponseEntity.ok(service.get(id));
+    public ResponseEntity<PostRes> getPost(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getPost(id));
+    }
+
+    @Operation(summary = "게시글 이미지 조회")
+    @ApiResponse(responseCode = "200", description = "성공")
+    @GetMapping(value = "/{id}/image", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> getPostImage(@PathVariable Long id) {
+        Post post = service.findById(id);
+        byte[] image = post.getImage();
+
+        if (image == null || image.length == 0) {
+            return ResponseEntity.notFound().build();
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.IMAGE_PNG);
+
+        return new ResponseEntity<>(image, headers, HttpStatus.OK);
     }
 
     // 페이지 응답 래퍼
@@ -91,10 +108,8 @@ public class PostController {
         }
     }
 
-    // 목록 조회(페이지)
     @Operation(summary = "게시글 목록 조회(페이지)")
     @ApiResponse(responseCode = "200", description = "성공")
-
     @GetMapping
     public ResponseEntity<PageResponse<PostRes>> list(
             @RequestParam(defaultValue = "0") int page,
@@ -108,27 +123,68 @@ public class PostController {
         return ResponseEntity.ok(new PageResponse<>(content, page, size, total, totalPages));
     }
 
-    // 수정 (작성자만)
+
     @Operation(summary = "게시글 수정")
     @ApiResponse(responseCode = "200", description = "수정 성공")
-
-    @PatchMapping("/{id}")
+    @PatchMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<PostRes> update(@PathVariable Long id,
-                                          @Valid @RequestBody PostUpdateReq req,
-                                          HttpServletRequest request) {
-        Long uid = auth.requireUserId(request); //
-        return ResponseEntity.ok(service.update(id, req, uid));
+                                          @ModelAttribute PostUpdateReq req,
+                                          HttpSession session) {
+        Long loginUserId = (Long) session.getAttribute(AuthSessionKeys.LOGIN_USER_ID);
+        if (loginUserId == null) {
+            throw new UnauthorizedException("게시글 수정을 위해서는 로그인이 필요합니다.");
+        }
+
+        PostRes res = service.update(id, req, loginUserId);
+        return ResponseEntity.ok(res);
     }
 
-    // 삭제 (작성자만)
+
+
+
     @Operation(summary = "게시글 삭제")
     @ApiResponse(responseCode = "204", description = "삭제 성공")
-
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id, HttpServletRequest request) {
-        Long uid = auth.requireUserId(request);
-        service.delete(id, uid);
+    public ResponseEntity<Void> delete(@PathVariable Long id, HttpSession session) {
+        Long loginUserId = (Long) session.getAttribute(AuthSessionKeys.LOGIN_USER_ID);
+        if (loginUserId == null) {
+            throw new UnauthorizedException("게시글 삭제를 위해서는 로그인이 필요합니다.");
+        }
+
+        service.delete(id, loginUserId);
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(summary = "게시글 좋아요 +1")
+    @ApiResponse(responseCode = "200", description = "성공")
+    @PostMapping("/{id}/like")
+    public ResponseEntity<LikeResponse> like(@PathVariable Long id, HttpSession session) {
+        Long loginUserId = (Long) session.getAttribute(AuthSessionKeys.LOGIN_USER_ID);
+        if (loginUserId == null) {
+            throw new UnauthorizedException("좋아요를 누르려면 로그인이 필요합니다.");
+        }
+
+        int likeCount = service.increaseLikeCount(id);
+        return ResponseEntity.ok(new LikeResponse(likeCount));
+    }
+
+    @Operation(summary = "게시글 좋아요 -1 (취소)")
+    @ApiResponse(responseCode = "200", description = "성공")
+    @DeleteMapping("/{id}/like")
+    public ResponseEntity<LikeResponse> unlike(@PathVariable Long id, HttpSession session) {
+        Long loginUserId = (Long) session.getAttribute(AuthSessionKeys.LOGIN_USER_ID);
+        if (loginUserId == null) {
+            throw new UnauthorizedException("좋아요를 취소하려면 로그인이 필요합니다.");
+        }
+
+        int likeCount = service.decreaseLikeCount(id);
+        return ResponseEntity.ok(new LikeResponse(likeCount));
+    }
+
+    /**
+     * 좋아요 응답 DTO (필요한 정보만 최소한으로)
+     */
+    public record LikeResponse(int likeCount) {}
+
 
 }

@@ -3,7 +3,10 @@ package com.example.my_community.auth.controller;
 import com.example.my_community.auth.Auth;
 import com.example.my_community.auth.AuthSessionKeys;
 import com.example.my_community.auth.SessionUser;
+import com.example.my_community.auth.dto.LoginRequest;
 import com.example.my_community.common.exception.UnauthorizedException;
+import com.example.my_community.user.domain.User;
+import com.example.my_community.user.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -22,13 +25,13 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-    private final Auth auth; // 인증 인터페이스
+    private final UserRepository userRepository;
 
-    public AuthController(Auth auth) {
-        this.auth = auth;
+    public AuthController(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
 
-    // userId를 세션에 저장하여 인증하는 방식
+
     @Operation(summary = "로그인(세션 생성)")
     @ApiResponse(responseCode = "204", description = "로그인 성공 (세션 생성)")
     @PostMapping("/login")
@@ -37,7 +40,7 @@ public class AuthController {
         User user = userRepository.findByEmail(req.getEmail())
                 .orElseThrow(() ->
                         new UnauthorizedException("이메일 또는 비밀번호가 올바르지 않습니다."));
-        // 비밀번호 검즘(일단 평문 비교 이후에 리펙토링 필요)
+        // 비밀번호 검증(일단 평문 비교 이후에 리펙토링 필요)
         if (!user.getPassword().equals(req.getPassword())) {
             throw new UnauthorizedException("이메일 또는 비밀번호가 올바르지 않습니다.");
         }
@@ -68,9 +71,11 @@ public class AuthController {
             description = "세션에 저장된 사용자",
             content = @Content(schema = @Schema(implementation = MeResponse.class))
     )
+
+    // 회원 정보 수정 매핑 : 수정 필요
     @GetMapping(value = "/me", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, Object>> me(@Parameter(hidden = true)HttpServletRequest request) {
-        Long uid = auth.requireUserId(request);
+    public ResponseEntity<Map<String, Object>> me(@Parameter(hidden = true) HttpServletRequest request) {
+        Long uid = 1L;
         return ResponseEntity.ok(Map.of("userId", uid));
     }
 }
