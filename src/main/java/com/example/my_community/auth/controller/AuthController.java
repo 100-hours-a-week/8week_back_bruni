@@ -1,10 +1,8 @@
 package com.example.my_community.auth.controller;
 
-import com.example.my_community.auth.AuthSessionKeys;
 import com.example.my_community.auth.dto.LoginRequest;
+import com.example.my_community.auth.security.CustomUserDetails;
 import com.example.my_community.common.exception.UnauthorizedException;
-import com.example.my_community.user.domain.User;
-import com.example.my_community.user.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -15,6 +13,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -23,38 +29,70 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-    private final UserRepository userRepository;
+    private final AuthenticationManager authenticationManager;
 
-    public AuthController(UserRepository userRepository) {
-        this.userRepository = userRepository;
+    public AuthController(AuthenticationManager authenticationManager) {
+        this.authenticationManager = authenticationManager;
     }
 
 
     @Operation(summary = "로그인(세션 생성)")
     @ApiResponse(responseCode = "204", description = "로그인 성공 (세션 생성)")
     @PostMapping("/login")
-    public ResponseEntity<Void> login(@RequestBody LoginRequest req, @Parameter(hidden = true) HttpSession session) {
-        // 이메일로 사용자 조회
-        User user = userRepository.findByEmail(req.getEmail())
-                .orElseThrow(() ->
-                        new UnauthorizedException("이메일 또는 비밀번호가 올바르지 않습니다."));
-        // 비밀번호 검증(일단 평문 비교 이후에 리펙토링 필요)
-        if (!user.getPassword().equals(req.getPassword())) {
+    public ResponseEntity<Void> login(@RequestBody LoginRequest request,
+                                      HttpServletRequest httpServletRequest) {
+
+        UsernamePasswordAuthenticationToken authenticationToken = new
+                UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword());
+
+        try {
+            // 1) 인증 시도 (CustomUserDetailsService 호출)
+            Authentication authentication = authenticationManager.authenticate(authenticationToken);
+
+            // 2) 인증 성공 (SecurityContext에 저장)
+            SecurityContext context = SecurityContextHolder.createEmptyContext();
+            context.setAuthentication(authentication);
+            SecurityContextHolder.setContext(context);
+
+            // 3) 세션에 SecurityContext 저장
+            HttpSession session = httpServletRequest.getSession(true);
+            session.setAttribute(
+                    HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context
+            );
+
+            // 프론트(login.js)에서 기대하는 200 OK 응답
+            return ResponseEntity.noContent().build();
+        } catch (BadCredentialsException e) {
+            // 비밀번호 틀림
             throw new UnauthorizedException("이메일 또는 비밀번호가 올바르지 않습니다.");
+        } catch (AuthenticationException e) {
+            // 기타 인증 관련 예외
+            throw new UnauthorizedException("로그인에 실패했습니다.");
         }
-
-        // 세션에 로그인 유저 ID 저장
-        session.setAttribute(AuthSessionKeys.LOGIN_USER_ID, user.getId());
-
-        return ResponseEntity.noContent().build(); // 204
     }
 
     @Operation(summary = "로그아웃(세션 만료)")
     @ApiResponse(responseCode = "204", description = "로그아웃 성공 (세션 무효화)")
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@Parameter(hidden = true) HttpSession session) {
-        session.invalidate();
-        return ResponseEntity.noContent().build(); // 204
+    public ResponseEntity<Void> logout(HttpServletRequest request) {
+        // SecurityContext 비우기
+        SecurityContextHolder.clearContext();
+
+        // 세션 무효화
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+
+        return ResponseEntity.noContent().build();
+    }
+
+    private Long extractUserId(Authentication authentication) {
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof CustomUserDetails customUserDetails) {
+            return customUserDetails.getId();
+        }
+        return null;
     }
 
     static class MeResponse {

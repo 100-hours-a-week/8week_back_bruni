@@ -34,9 +34,9 @@ public class CommentController {
 
     @PostMapping(value = "/api/posts/{postId}/comments", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<CommentRes> create(@PathVariable Long postId,
-                                             @Valid @RequestBody CommentCreateReq req, HttpServletRequest request) {
+                                             @Valid @RequestBody CommentCreateReq req) {
         // 로그인 여부 확인
-        Long uid = auth.requireUserId(request);
+        Long uid = auth.requireUserId();
         return ResponseEntity.ok(service.create(postId, req, uid));
     }
 
@@ -45,9 +45,8 @@ public class CommentController {
     @Operation(summary = "댓글 목록 조회")
     @ApiResponse(responseCode = "200", description = "성공")
     @GetMapping("/api/posts/{postId}/comments")
-    public ResponseEntity<List<CommentRes>> list(@PathVariable Long postId,
-                                                 HttpServletRequest request) {
-        Long uid = auth.getOptionalUserId(request);
+    public ResponseEntity<List<CommentRes>> list(@PathVariable Long postId) {
+        Long uid = auth.getCurrentUserId();
         List<CommentRes> content = service.listByPost(postId, uid);
         return ResponseEntity.ok(content);
     }
@@ -57,8 +56,8 @@ public class CommentController {
     @Operation(summary = "댓글 삭제(작성자만)")
     @ApiResponse(responseCode = "204", description = "삭제 성공")
     @DeleteMapping("/api/comments/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id, HttpServletRequest request) {
-        Long uid = auth.requireUserId(request);
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        Long uid = auth.getCurrentUserId();
         service.delete(id, uid);
         return ResponseEntity.noContent().build();
     }
@@ -67,9 +66,8 @@ public class CommentController {
     @ApiResponse(responseCode = "200", description = "수정 성공")
     @PatchMapping(value = "/api/comments/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<CommentRes> update(@PathVariable Long id,
-                                             @Valid @RequestBody CommentUpdateReq req,
-                                             HttpServletRequest request) {
-        Long uid = auth.requireUserId(request);   // 로그인 여부 + 유저 ID 얻기
+                                             @Valid @RequestBody CommentUpdateReq req) {
+        Long uid = auth.getCurrentUserId();
         CommentRes res = service.update(id, req, uid);
         return ResponseEntity.ok(res);
     }

@@ -1,7 +1,6 @@
 package com.example.my_community.config;
 
 import com.example.my_community.auth.Auth;
-import com.example.my_community.auth.SessionUser;
 import com.example.my_community.comment.repository.CommentRepository;
 import com.example.my_community.post.repository.PostRepository;
 import com.example.my_community.post.service.PostService;
@@ -22,10 +21,4 @@ public class AppConfig {
 
 
 
-
-
-    @Bean
-    public Auth auth() {
-        return new SessionUser();
-    }
 }

@@ -5,6 +5,7 @@ import com.example.my_community.user.domain.Role;
 import com.example.my_community.user.domain.User;
 import com.example.my_community.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,11 +14,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class UserService {
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
-    public User create(String email, String password, String nickname, byte[] profileImage) {
+    public User create(String email, String rawPassword, String nickname, byte[] profileImage) {
+        // 비밀번호 암호화
+        String encodedPassword = passwordEncoder.encode(rawPassword);
+
         Role defaultRole = Role.USER; // 도메인 규칙 : 회원 가입은 항상 일반 유저
-        User user = new User(email, password, nickname, profileImage, defaultRole);
+        User user = new User(email, encodedPassword, nickname, profileImage, defaultRole);
         return userRepository.save(user);
     }
 

@@ -1,6 +1,6 @@
 package com.example.my_community.post.controller;
 
-import com.example.my_community.auth.AuthSessionKeys;
+import com.example.my_community.auth.Auth;
 import com.example.my_community.common.exception.UnauthorizedException;
 import com.example.my_community.post.domain.Post;
 import com.example.my_community.post.dto.PostCreateRequest;
@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -36,7 +37,7 @@ import java.util.List;
 
 public class PostController {
     private final PostService service; // 서비스 계층 의존
-
+    private final Auth auth;
     /**
      * [create 메서드] : 사용자로부터 받은 요청(제목, 본문) -> 게시물 서비스 계층 -> Http 응답(바디에 정보 담아서) 생성
      * @param req : PostCreateDTO(=게시글 생성 DTO 클래스) 객체
@@ -52,10 +53,9 @@ public class PostController {
     @ApiResponse(responseCode = "201", description = "생성됨")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<PostRes> create(
-            @ModelAttribute PostCreateRequest req,
-            HttpSession session
+            @ModelAttribute PostCreateRequest req
     ) {
-        Long loginUserId = (Long) session.getAttribute(AuthSessionKeys.LOGIN_USER_ID);
+        Long loginUserId = auth.requireUserId();
         if (loginUserId == null) {
             throw new UnauthorizedException("게시글 작성을 위해서는 로그인이 필요합니다.");
         }
@@ -91,8 +91,7 @@ public class PostController {
     // 페이지 응답 래퍼
     @Schema(name = "PostPageResponse", description = "게시글 페이지 응답")
     public static class PageResponse<T> {
-        @Schema(description = "컨텐츠 목록")
-        public final List<T> content;
+        @Schema(description = "컨텐츠 목록") public final List<T> content;
         @Schema(example = "0") public final int page;
         @Schema(example = "10") public final int size;
         @Schema(example = "123") public final long totalElements;
@@ -126,10 +125,8 @@ public class PostController {
     @Operation(summary = "게시글 수정")
     @ApiResponse(responseCode = "200", description = "수정 성공")
     @PatchMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<PostRes> update(@PathVariable Long id,
-                                          @ModelAttribute PostUpdateReq req,
-                                          HttpSession session) {
-        Long loginUserId = (Long) session.getAttribute(AuthSessionKeys.LOGIN_USER_ID);
+    public ResponseEntity<PostRes> update(@PathVariable Long id, @Valid @RequestBody PostUpdateReq req) {
+        Long loginUserId = auth.requireUserId();
         if (loginUserId == null) {
             throw new UnauthorizedException("게시글 수정을 위해서는 로그인이 필요합니다.");
         }
@@ -144,8 +141,8 @@ public class PostController {
     @Operation(summary = "게시글 삭제")
     @ApiResponse(responseCode = "204", description = "삭제 성공")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id, HttpSession session) {
-        Long loginUserId = (Long) session.getAttribute(AuthSessionKeys.LOGIN_USER_ID);
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        Long loginUserId = auth.requireUserId();
         if (loginUserId == null) {
             throw new UnauthorizedException("게시글 삭제를 위해서는 로그인이 필요합니다.");
         }
@@ -157,8 +154,8 @@ public class PostController {
     @Operation(summary = "게시글 좋아요 +1")
     @ApiResponse(responseCode = "200", description = "성공")
     @PostMapping("/{id}/like")
-    public ResponseEntity<LikeResponse> like(@PathVariable Long id, HttpSession session) {
-        Long loginUserId = (Long) session.getAttribute(AuthSessionKeys.LOGIN_USER_ID);
+    public ResponseEntity<LikeResponse> like(@PathVariable Long id) {
+        Long loginUserId = auth.requireUserId();
         if (loginUserId == null) {
             throw new UnauthorizedException("좋아요를 누르려면 로그인이 필요합니다.");
         }
@@ -170,8 +167,8 @@ public class PostController {
     @Operation(summary = "게시글 좋아요 -1 (취소)")
     @ApiResponse(responseCode = "200", description = "성공")
     @DeleteMapping("/{id}/like")
-    public ResponseEntity<LikeResponse> unlike(@PathVariable Long id, HttpSession session) {
-        Long loginUserId = (Long) session.getAttribute(AuthSessionKeys.LOGIN_USER_ID);
+    public ResponseEntity<LikeResponse> unlike(@PathVariable Long id) {
+        Long loginUserId = auth.requireUserId();
         if (loginUserId == null) {
             throw new UnauthorizedException("좋아요를 취소하려면 로그인이 필요합니다.");
         }

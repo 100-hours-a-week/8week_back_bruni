@@ -10,11 +10,12 @@ import lombok.Getter;
 public class UserResponse {
         private Long id;
         private String email;
+        private String nickname;
         private byte[] profileImage;
         private Role role;
 
         public static UserResponse of(User user) {
-            return new UserResponse(user.getId(), user.getEmail(), user.getProfileImage(), user.getRole());
+            return new UserResponse(user.getId(), user.getEmail(), user.getNickname(), user.getProfileImage(), user.getRole());
         }
 
 }
